@@ -77,15 +77,15 @@ class CodeEmulator:
 	def set_start(
 		self, 
 		pc_addr:int, 
-		b_addr:int, 
+		frame_addr:int, 
 		stack_addr:int):
 		"""
 		Set the addresses for pc register, base and stack pointers.
 		"""
 
-		self.helper.writeRegister(self.stackPtr, s)
-		self.helper.writeRegister(self.framePtr, b)
-		self.helper.writeRegister(self.pc, pc)
+		self.helper.writeRegister(self.stackPtr, stack_addr)
+		self.helper.writeRegister(self.framePtr, frame_addr)
+		self.helper.writeRegister(self.pc, pc_addr)
 
 	def set_end(self, offset:int):
 		"""
