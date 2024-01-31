@@ -75,12 +75,12 @@ def struct_formatter(f):
 	return wrapper
 
 @dataclass
-class CodeEmulator: 
+class CodeEmulator(ProgramProxy): 
 	"""
 	Run code emulation in Ghidra.
 	"""
 	arch:str = field(default='x86')
-	proxy:ProgramProxy = field(default=None)
+	# proxy:ProgramProxy = field(default=None)
 	helper:EmulatorHelper = field(default=None)
 	monitor:ConsoleTaskMonitor = field(default=None)
 	pc:Register = field(default=None)
@@ -91,7 +91,9 @@ class CodeEmulator:
 	# regList:List[T] = field(default_factory=list)
 
 	def __post_init__(self):
-		self.helper = EmulatorHelper(self.proxy.prog)
+
+		super().__post_init__()
+		self.helper = EmulatorHelper(self.prog)
 		self.pc = self.helper.getPCRegister()
 		self.monitor = ConsoleTaskMonitor()
 		if self.arch == 'x86':
@@ -119,8 +121,7 @@ class CodeEmulator:
 		Set the address where the emulation ends.
 
 		"""
-		
-		self.endAddr = self.proxy.get_addr(addr)
+		self.endAddr = self.get_addr(addr)
 
 	def read_register(
 		self, 
@@ -219,3 +220,6 @@ class CodeEmulator:
 				print(f"Reach step limit: {step_limit}")
 				return
 
+	def terminate(self) -> None:
+		self.helper.dispose()
+		super().terminate()
