@@ -1,6 +1,6 @@
 import struct
 from dataclasses import dataclass, field
-from typing import List, Dict, TypeVar, Optional, Iterator, Callable
+from typing import List, Dict, NewType, TypeVar, Optional, Iterator, Callable
 
 ## Program module must be imported 
 from Program import ProgramProxy
@@ -12,14 +12,15 @@ from ghidra.util.task import ConsoleTaskMonitor
 ## Type hints
 from Program import Address, AddressValue
 
-T = TypeVar('T', int, float, str)
+T = TypeVar('T', int, float, str, List[int], List[float], List[str])
+RegisterName = NewType('RegisterName', str)
 
 def struct_formatter(f):
 	def wrapper(
 		obj:Callable, 
 		dtype:str, 
 		is_little:bool, 
-		address:int,
+		addr:int,
 		**kwargs):
 
 		formatStr = ''
@@ -28,38 +29,58 @@ def struct_formatter(f):
 		else:
 			formatStr += '>'
 
-		if dtype == 'uint16_t':
-			formatStr += 'H'
+		### The length of formatStr is related how many elements in value 
+		### are going to pack or unpack.
+		value = None
+		if 'value' in kwargs:
+			value = kwargs['value']
+		
+		dataLen = 1
+		if isinstance(value, list):
+			dataLen = len(value)
+
+		if dtype == 'uint8_t':
+			formatStr += 'B' * dataLen
+		elif dtype == 'int8_t':
+			formatStr += 'b' * dataLen
+		elif dtype == 'uint16_t':
+			formatStr += 'H' * dataLen
 		elif dtype == 'int16_t':
-			formatStr += 'h'
+			formatStr += 'h' * dataLen
 		elif dtype == 'uint32_t':
-			formatStr += 'I'
+			formatStr += 'I' * dataLen
 		elif dtype == 'int32_t':
-			formatStr += 'i'
+			formatStr += 'i' * dataLen
 		elif dtype == 'uint64_t':
-			formatStr += 'Q'
+			formatStr += 'Q' * dataLen
 		elif dtype == 'int64_t':
-			formatStr += 'q'
+			formatStr += 'q' * dataLen
+
+		## Python complains:
+		## struct.err: bad char in struct object
+		# elif dtype == 'size_t':
+		# 	formatStr += 'N' * dataLen
 
 		else:
 			raise NotImplemented(
 				f'{dtype} is not implemented yet.')
 
-		num_bytes = 1
+		num_bytes = 1 * dataLen
 		if dtype in ['uint16_t', 'int16_t']:
-			num_bytes = 2
+			num_bytes = 2 * dataLen
 		elif dtype in ['uint32_t', 'int32_t']:
-			num_bytes = 4
+			num_bytes = 4 * dataLen
 		elif dtype in ['uint64_t', 'int64_t']:
-			num_bytes = 8
+			num_bytes = 8 * dataLen
 
-		if 'value' in kwargs:
-			value = kwargs['value']
+		if value:
+		# if 'value' in kwargs:
+		# 	value = kwargs['value']
 			r = f(
 				obj, 
 				formatStr, 
 				is_little, 
-				address, 
+				addr, 
 				value, 
 				num_bytes=num_bytes)
 		else:
@@ -67,7 +88,7 @@ def struct_formatter(f):
 				obj, 
 				formatStr, 
 				is_little, 
-				address, 
+				addr, 
 				num_bytes=num_bytes)
 
 		return r
@@ -99,9 +120,22 @@ class CodeEmulator(ProgramProxy):
 		if self.arch == 'x86':
 			self.framePtr = 'RBP'
 			self.stackPtr = 'RSP'
+		elif self.arch == 'arm':
+			## Frame pointer (R11) contains the return address
+			## of a calling function.
+			self.framePtr = 'r11' 
+			## Stack pointer (R13) register contains the address
+			## of the top of a stack
+			self.stackPtr = 'sp'
 		else:
 			raise NotImplemented(
 				f'{self.arch} is not implemented yet.')
+
+	def read_stack_ptr(self) -> int:
+		return int(self.read_register(self.stackPtr))
+
+	def read_base_ptr(self) -> int:
+		return int(self.read_register(self.framePtr))
 
 	def set_start(
 		self, 
@@ -111,10 +145,12 @@ class CodeEmulator(ProgramProxy):
 		"""
 		Set the addresses for pc register, base and stack pointers.
 		"""
-
-		self.helper.writeRegister(self.stackPtr, stack_addr)
-		self.helper.writeRegister(self.framePtr, frame_addr)
-		self.helper.writeRegister(self.pc, pc_addr)
+		self.write_register(self.stackPtr, stack_addr)
+		self.write_register(self.framePtr, frame_addr)
+		self.write_register(self.pc, pc_addr)
+		# self.helper.writeRegister(self.stackPtr, stack_addr)
+		# self.helper.writeRegister(self.framePtr, frame_addr)
+		# self.helper.writeRegister(self.pc, pc_addr)
 
 	def set_end(self, addr:int):
 		"""
@@ -125,7 +161,7 @@ class CodeEmulator(ProgramProxy):
 
 	def read_register(
 		self, 
-		reg_name:str) -> AddressValue:
+		reg_name:RegisterName) -> AddressValue:
 
 		if reg_name == 'pc':
 			r = self.helper.readRegister(self.pc)
@@ -134,18 +170,25 @@ class CodeEmulator(ProgramProxy):
 
 		return r.intValue()
 
+	def write_register(
+		self, 
+		reg_name:RegisterName,
+		value:int):
+
+		self.helper.writeRegister(reg_name, value)
+
 	@struct_formatter
 	def read_memory(
 		self, 
 		dtype:str, 
 		is_little:bool,
-		address:int,
+		addr:Address,
 		**kwargs:int):
 
 		num_bytes = kwargs['num_bytes']
 
 		r = self.helper.readMemory(
-			address, 
+			addr, 
 			num_bytes)
 		r = struct.unpack(dtype, r)
 		return r
@@ -155,13 +198,16 @@ class CodeEmulator(ProgramProxy):
 		self, 
 		dtype:str, 
 		is_little:bool,
-		address:int, 
+		addr:Address, 
 		value:T,
 		**kwargs:int) -> None:
-		
-		value = struct.pack(dtype, value)
+	
+		if isinstance(value, list):
+			value = struct.pack(dtype, *value)
+		else:
+			value = struct.pack(dtype, value)
 
-		self.helper.writeMemory(address, value)
+		self.helper.writeMemory(addr, value)
 
 
 	## We will revisit this later.
