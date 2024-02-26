@@ -1,16 +1,24 @@
+# import sys
+# if 'pyhidra' not in sys.modules:
+# 	import pyhidra
+# 	print("pyhidra.start()")
+# 	pyhidra.start()
+
 import struct
 from dataclasses import dataclass, field
 from typing import List, Dict, NewType, TypeVar, Optional, Iterator, Callable
 
 ## Program module must be imported 
-from Program import ProgramProxy
+# from manghidra.Program import ProgramProxy
+# from Program import ProgramProxy
 
 from ghidra.program.model.lang import Register
 from ghidra.app.emulator import EmulatorHelper
 from ghidra.util.task import ConsoleTaskMonitor
 
+from manghidra.Program import ProgramProxy
 ## Type hints
-from Program import Address, AddressValue
+from manghidra.Program import Address, AddressValue
 
 T = TypeVar('T', int, float, str, List[int], List[float], List[str])
 RegisterName = NewType('RegisterName', str)

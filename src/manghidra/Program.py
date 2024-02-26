@@ -1,16 +1,23 @@
+# import sys
+# if 'pyhidra' not in sys.modules:
+# 	import pyhidra
+# 	print("pyhidra.start()")
+# 	pyhidra.start()
+
 from pathlib import Path
 from dataclasses import dataclass, field
 from contextlib import _GeneratorContextManager
 from typing import List, Tuple, Dict, Iterator, NewType, Optional
 
-from __init__ import start
+# from __init__ import start
 
-## Prevent pyhidra be initialized twice.
-if 'pyhidra' in globals():
-	print('pyhidra already started')
-else:
-	pyhidra = start()
-	print('pyhidra starts')
+# ## Prevent pyhidra be initialized twice.
+# if 'pyhidra' in globals():
+# 	print('pyhidra already started')
+# else:
+# 	import pyhidra
+# 	pyhidra.start()
+# 	print('pyhidra starts')
 
 from ghidra.program.flatapi import FlatProgramAPI 
 from ghidra.program.database import ProgramDB

@@ -1,8 +1,9 @@
-__all__ = ["Program", "CodeEmulator", "ControlflowGraph"]
+import sys
 
-def start():
-
+if 'pyhidra' not in sys.modules:
 	import pyhidra
+	print("pyhidra.start() in __init__")
 	pyhidra.start()
-	return pyhidra
+
+__all__ = ["Program", "Emulator", "Structure"]
 
