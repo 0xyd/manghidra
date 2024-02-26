@@ -5,7 +5,7 @@ if 'pyhidra' not in sys.modules:
 	pyhidra.start()
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Tuple, NewType, TypeVar
+from typing import Set, List, Dict, Tuple, NewType, TypeVar, Optional
 
 from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.program.model.block import BasicBlockModel
@@ -25,6 +25,7 @@ BlockData = TypeVar(
 	AddressList, 
 	InstructionList)
 BlockMeta = Dict[BlockAttr, BlockData]
+Edge = Tuple[BlockName, BlockName]
 
 @dataclass
 class ControlflowGraph(ProgramProxy):
@@ -34,7 +35,19 @@ class ControlflowGraph(ProgramProxy):
 	blocks:Dict[BlockName, BlockMeta] = field(
 		default_factory=dict)
 
+	## 20240226
+	## addr2Block (Address to Block) is a list structure
+	## I used to locate where the instruction is.
+	## This structure shall be build in a tree for 
+	## better search speed but at the moment I keep it this way.
+	addr2Block:List[Tuple[Address, Address, BlockName]] = field(
+		default_factory=list)
+
+	## Attribute to store all the edges
+	allEdges:Set[Edge] = field(default_factory=set)
+
 	def __post_init__(self):
+
 		super().__post_init__()
 		self.monitor = ConsoleTaskMonitor()
 		self.basicBlockModel = BasicBlockModel(self.prog)
@@ -46,6 +59,19 @@ class ControlflowGraph(ProgramProxy):
 				self.funcBlocks[funcName] = [blockName]
 
 			self.blocks[blockName] = blockData
+
+			self.addr2Block.append((
+				blockData['min_addr'],
+				blockData['max_addr'],
+				blockName
+				))
+
+			for dst in blockData['destinations']:
+				self.allEdges.add((blockName, dst))
+
+		self.addr2Block.sort(key=lambda x: x[0])
+
+
 
 	def _iter_blocks(self) -> Tuple[
 		FuncName, BlockName, BlockMeta]:
@@ -102,3 +128,19 @@ class ControlflowGraph(ProgramProxy):
 				}
 
 				yield (funcName, blockName, data)
+
+
+	def get_blockname_by_addr(
+		self, 
+		addr:int) -> Optional[str]:
+		'''
+		Get the block name by the address value
+		'''
+		for addrMin, addrMax, blockName in self.addr2Block:
+			
+			addrMin = addrMin.getOffset()
+			addrMax = addrMax.getOffset()
+			if addr >= addrMin and addr < addrMax:
+				return blockName
+
+		return None
