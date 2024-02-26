@@ -1,8 +1,8 @@
-# import sys
-# if 'pyhidra' not in sys.modules:
-# 	import pyhidra
-# 	print("pyhidra.start()")
-	# pyhidra.start()
+import sys
+if 'pyhidra' not in sys.modules:
+	import pyhidra
+	print("pyhidra.start()")
+	pyhidra.start()
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, NewType, TypeVar

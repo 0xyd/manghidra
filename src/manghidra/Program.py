@@ -1,8 +1,8 @@
-# import sys
-# if 'pyhidra' not in sys.modules:
-# 	import pyhidra
-# 	print("pyhidra.start()")
-# 	pyhidra.start()
+import sys
+if 'pyhidra' not in sys.modules:
+	import pyhidra
+	print("pyhidra.start()")
+	pyhidra.start()
 
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -69,6 +69,7 @@ class ProgramProxy():
 		default_factory=list)
 
 	def __post_init__(self):
+		print('check phidra:', pyhidra)
 		self.context = pyhidra.open_program(self.binaryPath)
 		self.api = self.context.__enter__()
 		self.prog = self.api.getCurrentProgram()

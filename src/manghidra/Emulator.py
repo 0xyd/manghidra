@@ -1,16 +1,12 @@
-# import sys
-# if 'pyhidra' not in sys.modules:
-# 	import pyhidra
-# 	print("pyhidra.start()")
-# 	pyhidra.start()
+import sys
+if 'pyhidra' not in sys.modules:
+	import pyhidra
+	print("pyhidra.start()")
+	pyhidra.start()
 
 import struct
 from dataclasses import dataclass, field
 from typing import List, Dict, NewType, TypeVar, Optional, Iterator, Callable
-
-## Program module must be imported 
-# from manghidra.Program import ProgramProxy
-# from Program import ProgramProxy
 
 from ghidra.program.model.lang import Register
 from ghidra.app.emulator import EmulatorHelper
