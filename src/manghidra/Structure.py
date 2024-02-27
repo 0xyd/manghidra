@@ -25,7 +25,9 @@ BlockData = TypeVar(
 	AddressList, 
 	InstructionList)
 BlockMeta = Dict[BlockAttr, BlockData]
+BlockAddrTuple = Tuple[Address, Address, BlockName]
 Edge = Tuple[BlockName, BlockName]
+
 
 @dataclass
 class ControlflowGraph(ProgramProxy):
@@ -40,7 +42,7 @@ class ControlflowGraph(ProgramProxy):
 	## I used to locate where the instruction is.
 	## This structure shall be build in a tree for 
 	## better search speed but at the moment I keep it this way.
-	addr2Block:List[Tuple[Address, Address, BlockName]] = field(
+	addr2Block:List[BlockAddrTuple] = field(
 		default_factory=list)
 
 	## Attribute to store all the edges
